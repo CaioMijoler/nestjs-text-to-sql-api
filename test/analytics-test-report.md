@@ -1,5 +1,5 @@
 ﻿# Text-to-SQL Analytics Test Report
-- **Date:** 2026-03-17 22:34:49
+- **Date:** 2026-03-18 00:25:00
 - **Endpoint:** `POST http://localhost:3001/insights`
 - **Total Questions:** 10
 
@@ -7,7 +7,7 @@
 ## âœ… Test 1 â€” Quais sao os produtos mais populares entre os clientes corporativos?
 
 - **Status:** `PASS`
-- **Response Time:** 318.7s
+- **Response Time:** 335.8s
 ### Generated SQL
 ```sql
 SELECT p.product_name, COUNT(DISTINCT o.id) AS total_sales FROM products p INNER JOIN order_details od ON p.id = od.product_id INNER JOIN orders o ON od.order_id = o.id INNER JOIN customers c ON o.customer_id = c.id WHERE c.company IS NOT NULL AND c.company != '' GROUP BY p.product_name ORDER BY total_sales DESC
@@ -30,7 +30,7 @@ SELECT p.product_name, COUNT(DISTINCT o.id) AS total_sales FROM products p INNER
 ## âœ… Test 2 â€” Quais sao os produtos mais vendidos em termos de quantidade?
 
 - **Status:** `PASS`
-- **Response Time:** 0s
+- **Response Time:** 287.1s
 ### Generated SQL
 ```sql
 SELECT p.product_name, SUM(od.quantity) AS total_sold FROM products p INNER JOIN order_details od ON p.id = od.product_id GROUP BY p.product_name ORDER BY total_sold DESC
@@ -53,20 +53,20 @@ SELECT p.product_name, SUM(od.quantity) AS total_sold FROM products p INNER JOIN
 ## âœ… Test 3 â€” Qual e o volume de vendas por cidade?
 
 - **Status:** `PASS`
-- **Response Time:** 0s
+- **Response Time:** 286.6s
 ### Generated SQL
 ```sql
-SELECT SUM(od.quantity * od.unit_price) AS total_sales, c.city FROM order_details od JOIN orders o ON od.order_id = o.id JOIN customers c ON o.customer_id = c.id GROUP BY c.city
+SELECT c.city, SUM(od.quantity * od.unit_price) AS total_sales FROM customers c JOIN orders o ON c.id = o.customer_id JOIN order_details od ON o.id = od.order_id GROUP BY c.city
 ```
 
 ### Results (preview)
-| total_sales | city |
+| city | total_sales |
 | --- | --- |
-| 2695.00000000 | Las Vegas |
-| 4949.00000000 | New York |
-| 4683.00000000 | Portland |
-| 2905.50000000 | Denver |
-| 2550.00000000 | Los Angelas |
+| Las Vegas | 2695.00000000 |
+| New York | 4949.00000000 |
+| Portland | 4683.00000000 |
+| Denver | 2905.50000000 |
+| Los Angelas | 2550.00000000 |
 
 *... and 7 more rows*
 
@@ -76,7 +76,7 @@ SELECT SUM(od.quantity * od.unit_price) AS total_sales, c.city FROM order_detail
 ## âœ… Test 4 â€” Quais sao os clientes que mais compraram?
 
 - **Status:** `PASS`
-- **Response Time:** 301.2s
+- **Response Time:** 288.4s
 ### Generated SQL
 ```sql
 SELECT c.id AS id, CONCAT(c.first_name, ' ', c.last_name) AS NomeCliente FROM customers c JOIN orders o ON c.id = o.customer_id GROUP BY c.id ORDER BY COUNT(o.id) DESC
@@ -99,7 +99,7 @@ SELECT c.id AS id, CONCAT(c.first_name, ' ', c.last_name) AS NomeCliente FROM cu
 ## âœ… Test 5 â€” Quais sao os produtos mais caros da loja?
 
 - **Status:** `PASS`
-- **Response Time:** 285.5s
+- **Response Time:** 274.3s
 ### Generated SQL
 ```sql
 SELECT p.product_name, p.list_price FROM products p ORDER BY p.list_price DESC
@@ -122,7 +122,7 @@ SELECT p.product_name, p.list_price FROM products p ORDER BY p.list_price DESC
 ## âœ… Test 6 â€” Quais sao os fornecedores mais frequentes nos pedidos?
 
 - **Status:** `PASS`
-- **Response Time:** 310.4s
+- **Response Time:** 302.2s
 ### Generated SQL
 ```sql
 SELECT s.company, COUNT(DISTINCT o.id) AS total_orders FROM orders o JOIN order_details od ON o.id = od.order_id JOIN products p ON od.product_id = p.id JOIN suppliers s ON FIND_IN_SET(s.id, REPLACE(p.supplier_ids, ',', '')) > 0 GROUP BY s.company ORDER BY total_orders DESC
@@ -145,7 +145,7 @@ SELECT s.company, COUNT(DISTINCT o.id) AS total_orders FROM orders o JOIN order_
 ## âœ… Test 7 â€” Quais os melhores vendedores?
 
 - **Status:** `PASS`
-- **Response Time:** 294.6s
+- **Response Time:** 286.4s
 ### Generated SQL
 ```sql
 SELECT e.first_name, e.last_name, COUNT(o.id) AS total_sales FROM employees e JOIN orders o ON e.id = o.employee_id GROUP BY e.id ORDER BY total_sales DESC
@@ -168,7 +168,7 @@ SELECT e.first_name, e.last_name, COUNT(o.id) AS total_sales FROM employees e JO
 ## âœ… Test 8 â€” Qual e o valor total de todas as vendas realizadas por ano?
 
 - **Status:** `PASS`
-- **Response Time:** 295.7s
+- **Response Time:** 289.5s
 ### Generated SQL
 ```sql
 SELECT YEAR(o.order_date) AS Ano, SUM(od.quantity * od.unit_price) AS TotalVendas FROM orders o JOIN order_details od ON o.id = od.order_id GROUP BY Ano
@@ -185,7 +185,7 @@ SELECT YEAR(o.order_date) AS Ano, SUM(od.quantity * od.unit_price) AS TotalVenda
 ## âœ… Test 9 â€” Qual e o valor total de vendas por categoria de produto?
 
 - **Status:** `PASS`
-- **Response Time:** 334.4s
+- **Response Time:** 288.9s
 ### Generated SQL
 ```sql
 SELECT p.category, SUM(od.quantity * od.unit_price) AS total_sales FROM products p INNER JOIN order_details od ON p.id = od.product_id INNER JOIN orders o ON od.order_id = o.id GROUP BY p.category
@@ -208,7 +208,7 @@ SELECT p.category, SUM(od.quantity * od.unit_price) AS total_sales FROM products
 ## âœ… Test 10 â€” Qual o ticket medio por compra?
 
 - **Status:** `PASS`
-- **Response Time:** 319.2s
+- **Response Time:** 287.4s
 ### Generated SQL
 ```sql
 SELECT AVG(od.quantity * od.unit_price) AS revenue, COUNT(DISTINCT p.product_name) AS most_sold_products FROM products p INNER JOIN order_details od ON p.id = od.product_id GROUP BY p.product_name ORDER BY revenue DESC

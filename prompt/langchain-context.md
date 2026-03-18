@@ -73,7 +73,7 @@ Question: Quais são os clientes que mais compraram?
 SQL: SELECT c.id AS id, CONCAT(c.first_name, ' ', c.last_name) AS NomeCliente FROM customers c JOIN orders o ON c.id = o.customer_id GROUP BY c.id ORDER BY COUNT(o.id) DESC
 
 Question: Quais são os fornecedores mais frequentes nos pedidos?
-SQL: SELECT s.company, COUNT(DISTINCT o.id) AS total_orders FROM orders o JOIN order_details od ON o.id = od.order_id JOIN products p ON od.product_id = p.id JOIN suppliers s ON FIND_IN_SET(s.id, REPLACE(p.supplier_ids, ',', '')) > 0 GROUP BY s.company ORDER BY total_orders DESC
+SQL: SELECT CONCAT(s.first_name, ' ', s.last_name) AS supplier, COUNT(DISTINCT o.id) AS total_orders FROM orders o JOIN order_details od ON o.id = od.order_id JOIN products p ON od.product_id = p.id JOIN suppliers s ON FIND_IN_SET(s.id, REPLACE(p.supplier_ids, ',', '')) > 0 GROUP BY s.company ORDER BY total_orders DESC
 
 Question: Qual o ticket médio por compra?
 SQL: SELECT SUM(od.quantity * od.unit_price) / COUNT(DISTINCT o.id) AS ticket_medio FROM orders o INNER JOIN order_details od ON o.id = od.order_id
