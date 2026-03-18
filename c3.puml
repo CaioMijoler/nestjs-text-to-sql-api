@@ -1,0 +1,22 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "User", "Analyst or business user")
+
+System_Boundary(system, "Text2SQL System") {
+
+    Container(api, "Text2SQL API", "NestJS", "Handles requests, orchestrates LLM pipeline and executes SQL queries")
+
+    Container(cache, "Cache", "Redis", "Stores frequent queries and results")
+
+}
+
+System_Ext(llm, "LLM Provider", "OpenAI / Azure OpenAI")
+SystemDb(db, "Northwind Database", "MySQL")
+
+Rel(user, api, "Uses", "HTTPS")
+Rel(api, llm, "Generates SQL via API")
+Rel(api, db, "Reads data", "SQL")
+Rel(api, cache, "Caches queries")
+
+@enduml

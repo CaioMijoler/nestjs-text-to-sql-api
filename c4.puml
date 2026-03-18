@@ -1,0 +1,15 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+Person(user, "User", "Analyst or business user")
+
+System(system, "Text2SQL System", "Converts natural language into SQL queries")
+
+System_Ext(llm, "LLM Provider", "OpenAI or Azure OpenAI")
+SystemDb(db, "Northwind Database", "MySQL database")
+
+Rel(user, system, "Uses")
+Rel(system, llm, "Generates SQL via")
+Rel(system, db, "Reads data from")
+
+@enduml

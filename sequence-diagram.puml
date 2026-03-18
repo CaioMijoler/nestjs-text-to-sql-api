@@ -1,0 +1,102 @@
+@startuml
+title Text-to-SQL API — Sequence Diagram
+
+skinparam style strictuml
+skinparam backgroundColor #FEFEFE
+skinparam sequenceMessageAlign center
+
+actor "Analyst /\nBusiness User" as User
+participant "QueryController\n(NestJS)" as Controller
+participant "QueryService" as Service
+participant "RedisService\n(Cache)" as Cache
+participant "LangchainService\n(AI)" as LLM
+participant "DatabaseService\n(MySQL Pool)" as DB
+entity "Ollama LLM\n(codeqwen)" as OllamaLLM
+
+== POST /insights ==
+
+User -> Controller : POST /insights\n{ "question": "Quais os produtos mais vendidos?" }
+activate Controller
+
+Controller -> Service : generateInsight(question)
+activate Service
+
+note right of Service : cacheKey = SHA256(question)
+
+Service -> Cache : get(cacheKey)
+activate Cache
+
+alt Cache HIT
+    Cache --> Service : JSON (cached result)
+    deactivate Cache
+    Service --> Controller : { question, generatedSql, data }
+    Controller --> User : HTTP 200\n{ question, generatedSql, data }
+
+else Cache MISS
+    Cache --> Service : null
+    deactivate Cache
+
+    Service -> DB : getDatabaseSchema()
+    activate DB
+    DB -> DB : SHOW TABLES\n+ SHOW COLUMNS\n+ FK relationships
+    DB --> Service : schemaString
+    deactivate DB
+
+    Service -> LLM : generateSqlFromText(question, schema)
+    activate LLM
+
+    note right of LLM : Load prompt template\n(langchain-context.md)\n+ inject schema & question
+
+    LLM -> OllamaLLM : invoke(prompt)
+    activate OllamaLLM
+    OllamaLLM --> LLM : raw SQL response
+    deactivate OllamaLLM
+
+    LLM -> LLM : Strip markdown fences\nRemove trailing semicolons
+
+    == SQL Review Step ==
+
+    note right of LLM : Build reviewer prompt\nwith schema + generated SQL
+
+    LLM -> OllamaLLM : invoke(reviewPrompt)
+    activate OllamaLLM
+    OllamaLLM --> LLM : reviewed SQL
+    deactivate OllamaLLM
+
+    LLM -> LLM : Validate reviewer output\n(fallback to original if invalid)
+
+    LLM --> Service : reviewedSql
+    deactivate LLM
+
+    Service -> Service : SqlValidator.isValidSelectQuery(sql)\n- Must start with SELECT\n- No forbidden keywords\n- No SELECT *
+
+    alt Validation FAIL
+        Service --> Controller : HTTP 400\n{ "message": "Not a valid SELECT" }
+        Controller --> User : HTTP 400 Bad Request
+    else Validation OK
+
+        Service -> DB : executeQuery(reviewedSql)
+        activate DB
+
+        alt SQL Execution OK
+            DB --> Service : rows[]
+            deactivate DB
+
+            Service -> Cache : set(cacheKey, result, TTL=3600s)
+            note right of Cache : Non-blocking\n(fire-and-forget)
+
+            Service --> Controller : { question, generatedSql, data }
+            deactivate Service
+            Controller --> User : HTTP 201\n{ question, generatedSql, data }
+            deactivate Controller
+
+        else SQL Execution ERROR
+            DB --> Service : MySQL error
+            deactivate DB
+            Service --> Controller : HTTP 500\n{ "message": "Error executing query" }
+            Controller --> User : HTTP 500 Internal Server Error
+        end
+    end
+end
+
+@enduml
